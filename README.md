@@ -2,4 +2,3 @@
 
 <center> <img src="/readme-source/logo.gif"></center>
 
-[cover-image.png](/readme-source/logo.gif)
