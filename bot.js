@@ -4,12 +4,13 @@ const axios = require("axios");
 
 // Set Base URL according to NODE_ENV environment variable
 const baseURL =
-  process.env.NODE_ENV === "development" ? "http://0.0.0.0:6000" : "";
+  process.env.NODE_ENV === "development"
+    ? "http://0.0.0.0:6000"
+    : "http://127.0.0.1:5000";
 
 const BOT_TOKEN = process.env.TELEGRAM_ACCESS_TOKEN;
 // const bot = new Telegraf(config.BOT_TOKEN);
 const bot = new Telegraf(BOT_TOKEN);
-
 module.exports = {
   botInstance: bot,
   baseURL: baseURL,

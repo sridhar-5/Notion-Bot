@@ -3,7 +3,7 @@ const { response } = require("express");
 const express = require("express");
 const app = express();
 const mongoose = require("mongoose");
-const { PORT = 6000, LOCAL_ADDRESS = "0.0.0.0" } = process.env;
+const { PORT = 5000, LOCAL_ADDRESS = "127.0.0.1" } = process.env;
 
 app.use(express.json());
 app.use("/saveto/notion", require("./routes/saveToNotion"));
@@ -35,4 +35,4 @@ Promise.all([
   .catch((err) => {
     console.error(err);
     process.exit(1);
-  });
+  });           

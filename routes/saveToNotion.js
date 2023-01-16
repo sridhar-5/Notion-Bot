@@ -7,6 +7,8 @@ const { botInstance, baseURL } = require("../bot");
 const postModel = require("../Models/post.js");
 const { Client } = require("@notionhq/client");
 const { By } = require("selenium-webdriver");
+const chrome = require("selenium-webdriver/chrome");
+const arrangeSentences = require("../Helpers/arrangeSentences");
 
 const client = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
 
@@ -42,7 +44,11 @@ router.post("/", async (request, response) => {
 async function getAuthorName(hyperLink) {
   require("chromedriver");
   var webdriver = require("selenium-webdriver");
-  var driver = new webdriver.Builder().forBrowser("chrome").build();
+
+  var driver = new webdriver.Builder()
+    .forBrowser("chrome")
+    .setChromeOptions(new chrome.Options().addArguments("--headless"))
+    .build();
   try {
     await driver.get(hyperLink);
     const author = await driver
@@ -61,7 +67,10 @@ async function getAuthorName(hyperLink) {
 async function getContent(hyperLink) {
   require("chromedriver");
   var webdriver = require("selenium-webdriver");
-  var driver = new webdriver.Builder().forBrowser("chrome").build();
+  var driver = new webdriver.Builder()
+    .forBrowser("chrome")
+    .setChromeOptions(new chrome.Options().addArguments("--headless"))
+    .build();
   try {
     await driver.get(hyperLink);
     const author = await driver
@@ -91,7 +100,7 @@ function findPlatform(hyperLink) {
 
 async function createNewPage(content, hyperLink, author, type) {
   const contentHeader = content.split(" ").slice(0, 9).join(" ");
-  console.log(contentHeader);
+  const children = arrangeContentBody(content, author);
   const response = await client.pages.create({
     parent: {
       database_id: process.env.NOTION_DATABASE_ID,
@@ -131,25 +140,38 @@ async function createNewPage(content, hyperLink, author, type) {
         },
       },
     },
-    children: [
-      {
-        object: "block",
-        type: "heading_2",
-        heading_2: {
-          rich_text: [{ type: "text", text: { content: author } }],
-        },
-      },
-      {
-        object: "block",
-        type: "paragraph",
-        paragraph: {
-          rich_text: [{ type: "text", text: { content: content } }],
-        },
-      },
-    ],
+    children: children,
   });
 
   return response;
+}
+
+function arrangeContentBody(content, author) {
+  const arrangeContent = arrangeSentences(content);
+  console.log(arrangeContent + "content here");
+  const children = [
+    {
+      object: "block",
+      type: "heading_2",
+      heading_2: {
+        rich_text: [{ type: "text", text: { content: author } }],
+      },
+    },
+  ];
+  console.log(arrangeContent.length + "length here");
+
+  for (const block of arrangeContent) {
+    console.log("Hello called");
+    children.push({
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [{ type: "text", text: { content: block } }],
+      },
+    });
+  }
+  console.log(children);
+  return children;
 }
 
 module.exports = router;
