@@ -9,7 +9,7 @@ const { Client } = require("@notionhq/client");
 const { By } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const arrangeSentences = require("../Helpers/arrangeSentences");
-
+const checkIfImageOrDoc = require("../Helpers/extract-docs-images");
 const client = new Client({ auth: process.env.NOTION_ACCESS_TOKEN });
 
 router.post("/", async (request, response) => {
@@ -20,20 +20,14 @@ router.post("/", async (request, response) => {
   const authorName = await getAuthorName(hyperLink);
   const content = await getContent(hyperLink);
   console.log(hyperLink, authorName, content);
-  const savePost = new postModel({
-    content: content,
-    hyperLink: hyperLink,
-    author: authorName,
-    type: findPlatform(hyperLink),
-  });
-  //post data saved to database
-  await savePost.save();
+  const assetsInfo = await checkIfImageOrDoc(hyperLink);
 
-  const saveToNotion = await createNewPage(
+  var saveToNotion = await createNewPage(
     content,
     hyperLink,
     authorName,
-    findPlatform(hyperLink)
+    findPlatform(hyperLink),
+    assetsInfo
   );
 
   if (saveToNotion) {
@@ -98,9 +92,9 @@ function findPlatform(hyperLink) {
   return "Post";
 }
 
-async function createNewPage(content, hyperLink, author, type) {
+async function createNewPage(content, hyperLink, author, type, assets) {
   const contentHeader = content.split(" ").slice(0, 9).join(" ");
-  const children = arrangeContentBody(content, author);
+  const children = arrangeContentBody(content, author, assets);
   const response = await client.pages.create({
     parent: {
       database_id: process.env.NOTION_DATABASE_ID,
@@ -146,7 +140,7 @@ async function createNewPage(content, hyperLink, author, type) {
   return response;
 }
 
-function arrangeContentBody(content, author) {
+function arrangeContentBody(content, author, assetsInfo) {
   const arrangeContent = arrangeSentences(content);
   console.log(arrangeContent + "content here");
   const children = [
@@ -170,7 +164,23 @@ function arrangeContentBody(content, author) {
       },
     });
   }
-  console.log(children);
+  console.log(assetsInfo);
+
+  if (assetsInfo["assets"].length != 0) {
+    if (assetsInfo["type"] == "pdf") {
+      children.push({
+        object: "block",
+        type: "pdf",
+        pdf: {
+          type: "external",
+          external: {
+            url: assetsInfo["assets"][0],
+          },
+        },
+      });
+    }
+  }
+  console.log(children[2].pdf.external);
   return children;
 }
 
